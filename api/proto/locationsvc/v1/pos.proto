@@ -1,0 +1,21 @@
+syntax = "proto3";
+package locationsvc.v1;
+
+option go_package = "github.com/akhenakh/goqtgrpc/gen/go/locationsvc/v1;locationsvc";
+
+//import "google/protobuf/timestamp.proto";
+
+service LocationService {
+    rpc Position(PositionRequest) returns (stream PositionResponse);
+}
+
+message PositionRequest {
+    string id = 1;
+}
+
+message PositionResponse {
+    string id = 1;
+    //google.protobuf.Timestamp timestamp = 2;
+    float longitude = 3;
+    float latitude = 4;
+}
