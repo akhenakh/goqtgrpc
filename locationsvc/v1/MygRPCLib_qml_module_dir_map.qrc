@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/">
-    <file alias="/qt/qml/locationsvc/v1">/home/akh/dev/goqtgrpc/locationsvc/v1</file>
-
-  </qresource>
-</RCC>

@@ -1,8 +1,0 @@
-module locationsvc.v1
-linktarget goqtgrpc_pluginplugin
-optional plugin goqtgrpc_pluginplugin
-classname locationsvc_v1Plugin
-typeinfo goqtgrpc_plugin.qmltypes
-depends QtProtobuf
-prefer :/qt/qml/locationsvc/v1/
-
