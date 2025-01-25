@@ -8,19 +8,51 @@ import locationsvc.v1
 
 ApplicationWindow {
     id: root
+    property int port: initialPort || 0
 
     property positionRequest posReq
-    property string errorText: ""
-    property int errorCode: 0
+    property string responseText: ""
 
-    function requestAnswer(id: string): void {
-        root.errorText = "";
+    // Factory function to create a gRPC client with a custom hostUri
+    function createGrpcClient(hostUri: string): LocationServiceClient {
+        // Create the GrpcHttp2Channel
+        var grpcChannel = Qt.createQmlObject(`
+            import QtGrpc
+            GrpcHttp2Channel {
+                hostUri: "${hostUri}"
+            }
+        `, root, "dynamicGrpcChannel");
+
+        // Create the LocationServiceClient and explicitly set its channel
+        var grpcClient = Qt.createQmlObject(`
+            import locationsvc.v1
+            LocationServiceClient {
+                id: client
+            }
+        `, root, "dynamicGrpcClient");
+
+        // Explicitly set the channel for the client
+        grpcClient.channel = grpcChannel.channel;
+
+        return grpcClient;
+    }
+
+
+    function requestPosition(id: string): void {
+        root.responseText = "";
         root.posReq.id = id;
+        console.log(`http://localhost:${port}`);
+
+        // Create a new gRPC client with the desired hostUri
+        var grpcClient = createGrpcClient(`http://localhost:${port}`);
+
+        // Make the gRPC call
         grpcClient.Position(root.posReq, finishCallback, errorCallback, grpcCallOptions);
     }
 
-    function finishCallback(response: positionResponse): void {
-        console.log(positionResponse);
+    function finishCallback(response): void {
+        console.log(response);
+        root.responseText = JSON.stringify(response);
     }
 
     function errorCallback(error): void {
@@ -28,8 +60,7 @@ ApplicationWindow {
         console.log(
             `Error callback executed. Error message: "${error.message}" Code: ${error.code}`
         );
-        root.errorText = error.message;
-        root.errorCode = error.code;
+        root.responseText = error.message;
     }
 
     minimumWidth: rootLayout.implicitWidth + rootLayout.anchors.margins * 2
@@ -37,18 +68,7 @@ ApplicationWindow {
 
     visible: true
     title: qsTr("Demo Go GRPC Example")
-    font.pointSize: 18
-
-    GrpcHttp2Channel {
-        id: grpcChannel
-        hostUri: "http://localhost:" + ConfigModule.port
-        // Optionally, you can specify custom channel options here
-        // options: GrpcChannelOptions {}
-    }
-    LocationServiceClient {
-        id: grpcClient
-        channel: grpcChannel.channel
-    }
+    font.pointSize: 16
 
     GrpcCallOptions {
         id: grpcCallOptions
@@ -71,13 +91,22 @@ ApplicationWindow {
         }
 
         Button {
-            onClicked: root.requestAnswer(questionInput.text)
+            onClicked: root.requestPosition(questionInput.text)
             Layout.alignment: Qt.AlignCenter
             leftPadding: 16
             rightPadding: 16
             text: qsTr("Request")
         }
 
-
+        TextField {
+            id: responseText
+            Layout.alignment: Qt.AlignCenter
+            Layout.fillWidth: true
+            leftPadding: 10
+            rightPadding: 10
+            readOnly: true
+            text: root.responseText
+            wrapMode: Text.Wrap
+        }
     }
 }

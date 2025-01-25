@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	pb "github.com/akhenakh/goqtgrpc/gen/go/locationsvc/v1"
 	"github.com/akhenakh/goqtgrpc/locationsrv"
@@ -44,6 +45,7 @@ func Start() int {
 		grpcServer := grpc.NewServer()
 		pb.RegisterLocationServiceServer(grpcServer, cs)
 		cs.gServer = grpcServer
+		reflection.Register(grpcServer)
 		grpcServer.Serve(lis)
 	}()
 

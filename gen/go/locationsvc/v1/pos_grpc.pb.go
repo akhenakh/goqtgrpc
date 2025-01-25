@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	LocationService_Position_FullMethodName = "/locationsvc.v1.LocationService/Position"
+	LocationService_Position_FullMethodName       = "/locationsvc.v1.LocationService/Position"
+	LocationService_StreamPosition_FullMethodName = "/locationsvc.v1.LocationService/StreamPosition"
 )
 
 // LocationServiceClient is the client API for LocationService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LocationServiceClient interface {
-	Position(ctx context.Context, in *PositionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PositionResponse], error)
+	Position(ctx context.Context, in *PositionRequest, opts ...grpc.CallOption) (*PositionResponse, error)
+	StreamPosition(ctx context.Context, in *PositionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PositionResponse], error)
 }
 
 type locationServiceClient struct {
@@ -37,9 +39,19 @@ func NewLocationServiceClient(cc grpc.ClientConnInterface) LocationServiceClient
 	return &locationServiceClient{cc}
 }
 
-func (c *locationServiceClient) Position(ctx context.Context, in *PositionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PositionResponse], error) {
+func (c *locationServiceClient) Position(ctx context.Context, in *PositionRequest, opts ...grpc.CallOption) (*PositionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &LocationService_ServiceDesc.Streams[0], LocationService_Position_FullMethodName, cOpts...)
+	out := new(PositionResponse)
+	err := c.cc.Invoke(ctx, LocationService_Position_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *locationServiceClient) StreamPosition(ctx context.Context, in *PositionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PositionResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &LocationService_ServiceDesc.Streams[0], LocationService_StreamPosition_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -54,13 +66,14 @@ func (c *locationServiceClient) Position(ctx context.Context, in *PositionReques
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type LocationService_PositionClient = grpc.ServerStreamingClient[PositionResponse]
+type LocationService_StreamPositionClient = grpc.ServerStreamingClient[PositionResponse]
 
 // LocationServiceServer is the server API for LocationService service.
 // All implementations should embed UnimplementedLocationServiceServer
 // for forward compatibility.
 type LocationServiceServer interface {
-	Position(*PositionRequest, grpc.ServerStreamingServer[PositionResponse]) error
+	Position(context.Context, *PositionRequest) (*PositionResponse, error)
+	StreamPosition(*PositionRequest, grpc.ServerStreamingServer[PositionResponse]) error
 }
 
 // UnimplementedLocationServiceServer should be embedded to have
@@ -70,8 +83,11 @@ type LocationServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedLocationServiceServer struct{}
 
-func (UnimplementedLocationServiceServer) Position(*PositionRequest, grpc.ServerStreamingServer[PositionResponse]) error {
-	return status.Errorf(codes.Unimplemented, "method Position not implemented")
+func (UnimplementedLocationServiceServer) Position(context.Context, *PositionRequest) (*PositionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Position not implemented")
+}
+func (UnimplementedLocationServiceServer) StreamPosition(*PositionRequest, grpc.ServerStreamingServer[PositionResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamPosition not implemented")
 }
 func (UnimplementedLocationServiceServer) testEmbeddedByValue() {}
 
@@ -93,16 +109,34 @@ func RegisterLocationServiceServer(s grpc.ServiceRegistrar, srv LocationServiceS
 	s.RegisterService(&LocationService_ServiceDesc, srv)
 }
 
-func _LocationService_Position_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _LocationService_Position_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PositionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LocationServiceServer).Position(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LocationService_Position_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LocationServiceServer).Position(ctx, req.(*PositionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LocationService_StreamPosition_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(PositionRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(LocationServiceServer).Position(m, &grpc.GenericServerStream[PositionRequest, PositionResponse]{ServerStream: stream})
+	return srv.(LocationServiceServer).StreamPosition(m, &grpc.GenericServerStream[PositionRequest, PositionResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type LocationService_PositionServer = grpc.ServerStreamingServer[PositionResponse]
+type LocationService_StreamPositionServer = grpc.ServerStreamingServer[PositionResponse]
 
 // LocationService_ServiceDesc is the grpc.ServiceDesc for LocationService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -110,11 +144,16 @@ type LocationService_PositionServer = grpc.ServerStreamingServer[PositionRespons
 var LocationService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "locationsvc.v1.LocationService",
 	HandlerType: (*LocationServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Position",
+			Handler:    _LocationService_Position_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Position",
-			Handler:       _LocationService_Position_Handler,
+			StreamName:    "StreamPosition",
+			Handler:       _LocationService_StreamPosition_Handler,
 			ServerStreams: true,
 		},
 	},

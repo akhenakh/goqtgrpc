@@ -20,3 +20,4 @@ vendor/
 .rcc/
 cmd/locationsrv/locationsrv
 build/
+cposlib/poslib.a

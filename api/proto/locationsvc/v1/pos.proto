@@ -6,7 +6,8 @@ option go_package = "github.com/akhenakh/goqtgrpc/gen/go/locationsvc/v1;location
 //import "google/protobuf/timestamp.proto";
 
 service LocationService {
-    rpc Position(PositionRequest) returns (stream PositionResponse);
+    rpc Position(PositionRequest) returns (PositionResponse);
+    rpc StreamPosition(PositionRequest) returns (stream PositionResponse);
 }
 
 message PositionRequest {

@@ -1,6 +1,7 @@
 package locationsrv
 
 import (
+	"context"
 	"log"
 	"math/rand/v2"
 	"time"
@@ -17,7 +18,8 @@ func New() *Server {
 	return &Server{}
 }
 
-func (s *Server) Position(req *pb.PositionRequest, srv grpc.ServerStreamingServer[pb.PositionResponse]) error {
+func (s *Server) StreamPosition(req *pb.PositionRequest, srv grpc.ServerStreamingServer[pb.PositionResponse]) error {
+	log.Println("got a stream request", req.Id)
 	timer := time.NewTicker(time.Second)
 	defer timer.Stop()
 
@@ -39,4 +41,15 @@ func (s *Server) Position(req *pb.PositionRequest, srv grpc.ServerStreamingServe
 			return nil
 		}
 	}
+}
+
+func (s *Server) Position(ctx context.Context, req *pb.PositionRequest) (*pb.PositionResponse, error) {
+	log.Println("got a unary request", req.Id)
+
+	return &pb.PositionResponse{
+		Id: req.GetId(),
+		//Timestamp: timestamppb.Now(),
+		Longitude: float32(rand.Float32()*180)*2 - 180,
+		Latitude:  float32(rand.Float32()*180) - 90,
+	}, nil
 }

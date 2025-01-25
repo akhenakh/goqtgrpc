@@ -1,6 +1,6 @@
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-cmake_minimum_required(VERSION 3.16...3.22)
+cmake_minimum_required(VERSION 3.16)
 project(GoQtgRPC)
 
 find_package(Qt6 REQUIRED COMPONENTS
@@ -29,16 +29,23 @@ qt_add_grpc(goqtgrpc_plugin CLIENT
     QML
 )
 
-qt_add_qml_module(goqtgrpc
-    URI goqtgrpc
-    VERSION 1.0
-    RESOURCE_PREFIX "/qt/qml"
-    QML_FILES
-        "Main.qml"
+qt_policy(SET QTP0001 NEW)
+
+
+
+# Create the executable with source files
+qt_add_executable(MyApp
+    main.cpp
 )
 
-
-qt_add_executable(MyApp main.cpp)
+qt_add_qml_module(MyApp
+    URI goqtgrpc
+    VERSION 1.0
+    QML_FILES
+        "Main.qml"
+    DEPENDENCIES
+        goqtgrpc_plugin
+)
 
 target_link_libraries(MyApp
     PRIVATE
@@ -49,5 +56,8 @@ target_link_libraries(MyApp
         Qt6::Protobuf
         Qt6::Grpc
         Qt6::GrpcQuick
+        ${CMAKE_CURRENT_SOURCE_DIR}/cposlib/cposlib.a
         goqtgrpc_plugin
 )
+
+target_include_directories(MyApp PRIVATE cposlib)

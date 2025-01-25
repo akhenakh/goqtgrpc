@@ -8,5 +8,5 @@ An exploratory work to embed a Go gRPC server inside a C++ app using QML to inte
 ```sh
 buf generate
 
-cd poslib && CGO_ENABLED=1 go build -buildmode=c-archive -o poslib.a ./poslib.go
+cd cposlib && CGO_ENABLED=1 go build -buildmode=c-archive -o cposlib.a ./cposlib.go
 ```

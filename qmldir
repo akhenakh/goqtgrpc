@@ -1,9 +1,0 @@
-module goqtgrpc
-linktarget goqtgrpcplugin
-optional plugin goqtgrpcplugin
-classname goqtgrpcPlugin
-typeinfo goqtgrpc.qmltypes
-depends goqtgrpc_plugin
-prefer :/qt/qml/goqtgrpc/
-Main 1.0 Main.qml
-
