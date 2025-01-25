@@ -11,11 +11,11 @@ service LocationService {
 }
 
 message PositionRequest {
-    string id = 1;
+    string device_id = 1;
 }
 
 message PositionResponse {
-    string id = 1;
+    string device_id = 1;
     //google.protobuf.Timestamp timestamp = 2;
     float longitude = 3;
     float latitude = 4;

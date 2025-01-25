@@ -10,3 +10,7 @@ buf generate
 
 cd cposlib && CGO_ENABLED=1 go build -buildmode=c-archive -o cposlib.a ./cposlib.go
 ```
+
+## Pitfalls
+- id conficting with qml id
+- the GrpcHttp2Channel hostUri can't be changed

@@ -38,10 +38,9 @@ ApplicationWindow {
     }
 
 
-    function requestPosition(id: string): void {
+    function requestPosition(deviceId: string): void {
         root.responseText = "";
-        root.posReq.id = id;
-        console.log(`http://localhost:${port}`);
+        root.posReq.deviceId = deviceId;
 
         // Create a new gRPC client with the desired hostUri
         var grpcClient = createGrpcClient(`http://localhost:${port}`);
