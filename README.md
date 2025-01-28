@@ -14,3 +14,4 @@ cd cposlib && CGO_ENABLED=1 go build -buildmode=c-archive -o cposlib.a ./cposlib
 ## Pitfalls
 - id conficting with qml id
 - the GrpcHttp2Channel hostUri can't be changed
+- timestamp.proto imports

@@ -20,4 +20,6 @@ vendor/
 .rcc/
 cmd/locationsrv/locationsrv
 build/
-cposlib/poslib.a
+cposlib/cposlib.a
+MyApp_autogen/
+cposlib/cposlib

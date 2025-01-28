@@ -11,6 +11,8 @@ find_package(Qt6 REQUIRED COMPONENTS
     GrpcQuick
     GrpcTools
     Quick
+    Positioning
+    Location
     ProtobufWellKnownTypes
 )
 
@@ -38,6 +40,12 @@ qt_add_executable(MyApp
     main.cpp
 )
 
+qt_add_resources(MyApp "resources"
+    PREFIX "/"
+    FILES
+        sat.png
+)
+
 qt_add_qml_module(MyApp
     URI goqtgrpc
     VERSION 1.0
@@ -56,6 +64,8 @@ target_link_libraries(MyApp
         Qt6::Protobuf
         Qt6::Grpc
         Qt6::GrpcQuick
+        Qt6::Positioning
+        Qt6::Location
         ${CMAKE_CURRENT_SOURCE_DIR}/cposlib/cposlib.a
         goqtgrpc_plugin
 )

@@ -2,6 +2,8 @@ import QtQuick
 import QtGrpc
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtLocation
+import QtPositioning
 
 import goqtgrpc
 import locationsvc.v1
@@ -12,6 +14,8 @@ ApplicationWindow {
 
     property positionRequest posReq
     property string responseText: ""
+    property LocationServiceClient grpcClient
+    property var receivedPosition: QtPositioning.coordinate() // Holds the received position
 
     // Factory function to create a gRPC client with a custom hostUri
     function createGrpcClient(hostUri: string): LocationServiceClient {
@@ -37,29 +41,78 @@ ApplicationWindow {
         return grpcClient;
     }
 
-
-    function requestPosition(deviceId: string): void {
+    function requestStreamPosition(deviceId: string): void {
         root.responseText = "";
         root.posReq.deviceId = deviceId;
 
-        // Create a new gRPC client with the desired hostUri
-        var grpcClient = createGrpcClient(`http://localhost:${port}`);
+        // Create a new gRPC client with the desired hostUri only if the root one is nil
+        if (!root.grpcClient) {
+            root.grpcClient = createGrpcClient(`http://localhost:${port}`);
+        }
 
-        // Make the gRPC call
-        grpcClient.Position(root.posReq, finishCallback, errorCallback, grpcCallOptions);
+        // Define the callbacks for the stream
+        var streamCallbacks = {
+            // Callback for handling each position response
+            positionReceived: function(response) {
+                console.log("Stream response received:", response);
+                root.responseText = JSON.stringify(response)
+                receivedPosition.latitude = response.latitude;
+                receivedPosition.longitude = response.longitude;
+                map.center = receivedPosition; // Update the map center
+                console.log("New position:", receivedPosition.latitude, receivedPosition.longitude)
+            },
+
+            // Callback for handling stream errors
+            errorOccurred: function(error) {
+                console.log(
+                    `Stream error occurred. Error message: "${error.message}" Code: ${error.code}`
+                );
+                root.responseText += "Stream error: " + error.message + "\n";
+            },
+
+            // Callback for handling stream completion
+            finished: function() {
+                console.log("Stream finished.");
+                root.responseText += "Stream finished.\n";
+            }
+        };
+
+        // Make the gRPC stream call
+        grpcClient.StreamPosition(root.posReq, streamCallbacks.positionReceived, streamCallbacks.errorOccurred, streamCallbacks.finished, grpcCallOptions);
     }
 
-    function finishCallback(response): void {
-        console.log(response);
-        root.responseText = JSON.stringify(response);
-    }
+    function requestUnaryPosition(deviceId: string): void {
+        root.responseText = "";
+        root.posReq.deviceId = deviceId;
 
-    function errorCallback(error): void {
-        // error is received as a JavaScript object, but it is a QGrpcStatus instance
-        console.log(
-            `Error callback executed. Error message: "${error.message}" Code: ${error.code}`
-        );
-        root.responseText = error.message;
+        // Create a new gRPC client with the desired hostUri only if the root one is nil
+        if (!root.grpcClient) {
+            root.grpcClient = createGrpcClient(`http://localhost:${port}`);
+        }
+
+        // Define the callbacks for the stream
+        var unaryCallbacks = {
+            // Callback for handling unary errors
+            errorOccurred: function(error) {
+                console.log(
+                    `Stream error occurred. Error message: "${error.message}" Code: ${error.code}`
+                );
+                root.responseText += "error: " + error.message + "\n";
+            },
+
+            // Callback for handling unary completion
+            finished: function(response) {
+                console.log("Stream response received:", response);
+                root.responseText = JSON.stringify(response);
+                receivedPosition.latitude = response.latitude;
+                receivedPosition.longitude = response.longitude;
+                map.center = receivedPosition; // Update the map center
+                console.log("New position:", receivedPosition.latitude, receivedPosition.longitude)
+            }
+        };
+
+        // Make the gRPC unary call
+        grpcClient.Position(root.posReq, unaryCallbacks.finished, unaryCallbacks.errorOccurred, grpcCallOptions);
     }
 
     minimumWidth: rootLayout.implicitWidth + rootLayout.anchors.margins * 2
@@ -69,9 +122,13 @@ ApplicationWindow {
     title: qsTr("Demo Go GRPC Example")
     font.pointSize: 16
 
+    Plugin {
+        id: mapPlugin
+        name: "osm"
+    }
+
     GrpcCallOptions {
         id: grpcCallOptions
-        deadlineTimeout: 6000
     }
 
     ColumnLayout {
@@ -89,12 +146,22 @@ ApplicationWindow {
             placeholderText: qsTr("ID...")
         }
 
-        Button {
-            onClicked: root.requestPosition(questionInput.text)
+        RowLayout {
             Layout.alignment: Qt.AlignCenter
-            leftPadding: 16
-            rightPadding: 16
-            text: qsTr("Request")
+            spacing: 12
+
+            Button {
+                onClicked: root.requestUnaryPosition(questionInput.text)
+                leftPadding: 16
+                rightPadding: 16
+                text: qsTr("Request Unary")
+            }
+            Button {
+                onClicked: root.requestStreamPosition(questionInput.text)
+                leftPadding: 16
+                rightPadding: 16
+                text: qsTr("Request Stream")
+            }
         }
 
         TextField {
@@ -106,6 +173,42 @@ ApplicationWindow {
             readOnly: true
             text: root.responseText
             wrapMode: Text.Wrap
+        }
+
+        Map {
+            id: map
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 500
+
+            plugin: mapPlugin
+
+            center: receivedPosition
+            zoomLevel: 6
+
+            // Add a marker for the received position
+            MapQuickItem {
+                id: marker
+                anchorPoint.x: sourceItem.width/2
+                anchorPoint.y: sourceItem.height
+                coordinate: receivedPosition
+
+                sourceItem: Rectangle {
+                    width: 20
+                    height: 20
+                    color: "red"
+                    border.width: 2
+                    border.color: "white"
+                    radius: width/2
+
+                    // Optional: Add an image instead of the rectangle
+                    // Image {
+                    //     anchors.fill: parent
+                    //     source: "qrc:/sat.png"
+                    //     sourceSize: Qt.size(width, height)
+                    // }
+                }
+            }
         }
     }
 }
