@@ -59,7 +59,8 @@ ApplicationWindow {
                 receivedPosition.latitude = response.latitude;
                 receivedPosition.longitude = response.longitude;
                 map.center = receivedPosition; // Update the map center
-                console.log("New position:", receivedPosition.latitude, receivedPosition.longitude)
+                marker.coordinate = receivedPosition;
+                console.log("New position:", receivedPosition.latitude, receivedPosition.longitude, receivedPosition.isValid)
             },
 
             // Callback for handling stream errors
@@ -107,6 +108,7 @@ ApplicationWindow {
                 receivedPosition.latitude = response.latitude;
                 receivedPosition.longitude = response.longitude;
                 map.center = receivedPosition; // Update the map center
+                marker.coordinate = receivedPosition;
                 console.log("New position:", receivedPosition.latitude, receivedPosition.longitude)
             }
         };
@@ -177,6 +179,8 @@ ApplicationWindow {
 
         Map {
             id: map
+            property alias marker: marker
+
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: 500
@@ -184,31 +188,79 @@ ApplicationWindow {
             plugin: mapPlugin
 
             center: receivedPosition
-            zoomLevel: 6
+            zoomLevel: 4
+
+            onCenterChanged: {
+                console.log("Map center changed to:", center.latitude, center.longitude);
+            }
+
+            MapCircle {
+                center {
+                    latitude: receivedPosition.latitude
+                    longitude: receivedPosition.longitude
+                }
+                radius: 5000.0
+                color: 'green'
+                border.width: 3
+            }
+
 
             // Add a marker for the received position
             MapQuickItem {
                 id: marker
-                anchorPoint.x: sourceItem.width/2
-                anchorPoint.y: sourceItem.height
+                anchorPoint.x: image.width/2
+                anchorPoint.y: image.height
                 coordinate: receivedPosition
+                //visible: receivedPosition.isValid
 
-                sourceItem: Rectangle {
-                    width: 20
-                    height: 20
-                    color: "red"
-                    border.width: 2
-                    border.color: "white"
-                    radius: width/2
+                sourceItem: Image {
+                    source: "qrc:/sat.png"
+                    sourceSize: Qt.size(width, height)
+                    antialiasing: true
+                    smooth: true
+                    // Remove any background color
+                    layer.enabled: true
+                    layer.effect: ShaderEffect {
+                        property color color: "transparent"
+                    }
+                }
 
-                    // Optional: Add an image instead of the rectangle
-                    // Image {
-                    //     anchors.fill: parent
-                    //     source: "qrc:/sat.png"
-                    //     sourceSize: Qt.size(width, height)
-                    // }
+                onCoordinateChanged: {
+                    console.log("Marker coordinate changed to:", coordinate.latitude, coordinate.longitude);
                 }
             }
+
+            // Enable panning and zooming with the mouse
+            MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+            property real lastX: 0
+            property real lastY: 0
+
+            onPressed: {
+                lastX = mouse.x
+                lastY = mouse.y
+            }
+
+            onPositionChanged: {
+                if (pressedButtons & Qt.LeftButton) {
+                    var dx = mouse.x - lastX
+                    var dy = mouse.y - lastY
+                    map.pan(-dx, -dy)
+                    lastX = mouse.x
+                    lastY = mouse.y
+                }
+            }
+
+            onWheel: {
+                if (wheel.angleDelta.y > 0) {
+                    map.zoomLevel += 0.5
+                } else {
+                    map.zoomLevel -= 0.5
+                }
+            }
+        }
         }
     }
 }
